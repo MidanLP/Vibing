@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="formbox">
+  <h1>Create your account</h1>
+  <%- include('../partials/error-box') %>
+  <form method="post" action="/signup">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Your name <input name="name" value="<%= values.name || '' %>" maxlength="80" required autocomplete="name"></label>
+    <label>Email <input type="email" name="email" value="<%= values.email || '' %>" maxlength="254" required autocomplete="email"></label>
+    <label>Password <small class="muted">(at least 8 characters)</small><input type="password" name="password" minlength="8" maxlength="200" required autocomplete="new-password"></label>
+    <label>Repeat password <input type="password" name="password2" minlength="8" maxlength="200" required autocomplete="new-password"></label>
+    <button class="btn btn-block" type="submit">Sign up</button>
+  </form>
+  <p class="muted center">Already have an account? <a href="/login">Log in</a></p>
+</div>
+<%- include('../partials/footer') %>

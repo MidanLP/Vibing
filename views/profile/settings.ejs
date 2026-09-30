@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+<div class="formbox formbox-wide">
+  <h1>Your profile</h1>
+  <%- include('../partials/error-box') %>
+  <form method="post" action="/settings" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="avatar-edit">
+      <span data-avatar-preview><%- include('../partials/avatar', { user: values, size: 88 }) %></span>
+      <div>
+        <label>Profile picture <input type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" data-preview-target="[data-avatar-preview]"></label>
+        <small class="muted">JPEG, PNG, GIF or WebP, up to 5 MB.</small>
+        <% if (values.avatar) { %><label class="check"><input type="checkbox" name="remove_avatar" value="1"> Remove my picture</label><% } %>
+      </div>
+    </div>
+    <label>Name <input name="name" value="<%= values.name %>" maxlength="80" required></label>
+    <label>Short bio <textarea name="bio" rows="3" maxlength="500" placeholder="A sentence or two about you"><%= values.bio %></textarea></label>
+    <p class="muted small">Email: <%= currentUser.email %></p>
+    <button class="btn" type="submit">Save profile</button>
+  </form>
+
+  <hr>
+  <h2 id="password">Change password</h2>
+  <% if (pwError) { %><div class="flash flash-error" role="alert"><%= pwError %></div><% } %>
+  <form method="post" action="/settings/password">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Current password <input type="password" name="current" required autocomplete="current-password"></label>
+    <label>New password <small class="muted">(at least 8 characters)</small><input type="password" name="password" minlength="8" maxlength="200" required autocomplete="new-password"></label>
+    <label>Repeat new password <input type="password" name="password2" minlength="8" maxlength="200" required autocomplete="new-password"></label>
+    <button class="btn btn-ghost" type="submit">Change password</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,40 @@
+<%- include('../partials/header', { useEditor: true }) %>
+<div class="editor-page">
+  <%- include('../partials/error-box') %>
+  <form method="post" action="<%= isNew ? '/posts' : '/posts/' + post.id %>" enctype="multipart/form-data" data-rich-form>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="content" data-rich-input>
+
+    <div class="editor-toolbar-top">
+      <span class="tag tag-<%= post.status %>"><%= post.status === 'draft' ? 'Draft' : 'Published' %></span>
+      <div class="actions">
+        <% if (!isNew && post.status === 'published') { %><a class="btn btn-ghost" href="/posts/<%= post.id %>">View</a><% } %>
+        <% if (post.status === 'draft') { %>
+          <% if (!isNew) { %><a class="btn btn-ghost" href="/posts/<%= post.id %>">Preview</a><% } %>
+          <button class="btn btn-ghost" type="submit" name="action" value="save">Save draft</button>
+          <button class="btn" type="submit" name="action" value="publish">Publish</button>
+        <% } else { %>
+          <button class="btn btn-ghost" type="submit" name="action" value="unpublish">Turn back into draft</button>
+          <button class="btn" type="submit" name="action" value="save">Save changes</button>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="cover-edit">
+      <% if (post.cover_image) { %>
+        <img class="cover-preview" src="<%= post.cover_image %>" alt="" data-cover-preview>
+      <% } else { %>
+        <img class="cover-preview" alt="" data-cover-preview hidden>
+      <% } %>
+      <label class="cover-pick">
+        <span><%= post.cover_image ? 'Change cover image' : 'Add a cover image' %></span>
+        <input type="file" name="cover" accept="image/jpeg,image/png,image/gif,image/webp" data-preview-target="[data-cover-preview]">
+      </label>
+      <% if (post.cover_image) { %><label class="check small"><input type="checkbox" name="remove_cover" value="1"> Remove cover image</label><% } %>
+    </div>
+
+    <input class="title-input" name="title" value="<%= post.title || '' %>" placeholder="Title" maxlength="200" required aria-label="Title">
+    <div class="editor editor-large" data-rich-editor="post" data-placeholder="Tell your story…"><%- post.content_html || '' %></div>
+  </form>
+</div>
+<%- include('../partials/footer') %>

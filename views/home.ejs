@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<% if (!currentUser && pager.page === 1) { %>
+<section class="hero">
+  <h1>Stories and ideas from everyone.</h1>
+  <p>Start your own blog in a minute, write what you think, and talk with your readers.</p>
+  <a class="btn btn-large" href="/signup">Start writing</a>
+</section>
+<% } %>
+<div class="narrow">
+  <h2 class="section-title">Latest posts</h2>
+  <% if (!posts.length) { %>
+    <p class="empty">Nothing has been published yet.<% if (currentUser) { %> <a href="<%= currentUser.blog ? '/posts/new' : '/my-blog' %>">Be the first!</a><% } %></p>
+  <% } %>
+  <% posts.forEach((post) => { %><%- include('partials/post-card', { post }) %><% }) %>
+  <%- include('partials/pager') %>
+</div>
+<%- include('partials/footer') %>

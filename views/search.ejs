@@ -1,0 +1,13 @@
+<%- include('partials/header') %>
+<div class="narrow">
+  <form class="searchform" action="/search" method="get" role="search">
+    <input type="search" name="q" value="<%= q %>" placeholder="Search posts by title or text" aria-label="Search" autofocus>
+    <button class="btn" type="submit">Search</button>
+  </form>
+  <% if (q) { %>
+    <p class="muted"><%= posts.length ? 'Results for' : 'No posts found for' %> “<%= q %>”</p>
+    <% posts.forEach((post) => { %><%- include('partials/post-card', { post }) %><% }) %>
+    <%- include('partials/pager') %>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

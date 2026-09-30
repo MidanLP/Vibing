@@ -1,0 +1,15 @@
+<%- include('../partials/header', { useEditor: true }) %>
+<div class="narrow">
+  <h1>Edit comment</h1>
+  <%- include('../partials/error-box') %>
+  <form class="comment-form" method="post" action="/comments/<%= comment.id %>" data-rich-form>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="content" data-rich-input>
+    <div class="comment-editor"><div class="editor editor-small" data-rich-editor="comment"><%- comment.content_html %></div></div>
+    <div class="actions">
+      <button class="btn" type="submit">Save</button>
+      <a class="btn btn-ghost" href="/posts/<%= comment.post_id %>#comment-<%= comment.id %>">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('../partials/footer') %>

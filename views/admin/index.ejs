@@ -1,0 +1,24 @@
+<%- include('../partials/header') %>
+<h1>Admin</h1>
+<%- include('_nav') %>
+<div class="stats">
+  <a class="stat" href="/admin/users"><strong><%= stats.users %></strong><span>users</span><% if (stats.banned) { %><small><%= stats.banned %> banned</small><% } %></a>
+  <a class="stat" href="/admin/blogs"><strong><%= stats.blogs %></strong><span>blogs</span></a>
+  <a class="stat" href="/admin/posts"><strong><%= stats.published %></strong><span>published posts</span><small><%= stats.drafts %> drafts</small></a>
+  <a class="stat" href="/admin/comments"><strong><%= stats.comments %></strong><span>comments</span></a>
+</div>
+<div class="twocol">
+  <section>
+    <h2>Newest users</h2>
+    <ul class="plainlist">
+      <% recentUsers.forEach((u) => { %><li><a href="/u/<%= u.id %>"><%= u.name %></a> <span class="muted small"><%= u.email %> · <%= h.formatDate(u.created_at) %></span></li><% }) %>
+    </ul>
+  </section>
+  <section>
+    <h2>Newest comments</h2>
+    <ul class="plainlist">
+      <% recentComments.forEach((c) => { %><li><strong><%= c.user_name %></strong> on <a href="/posts/<%= c.post_id %>#comment-<%= c.id %>"><%= c.post_title %></a><div class="muted small"><%= h.excerpt(h.stripTags(c.content_html), 120) %></div></li><% }) %>
+    </ul>
+  </section>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,26 @@
+<%- include('../partials/header') %>
+<h1>Admin: posts</h1>
+<%- include('_nav') %>
+<% const backUrl = '/admin/posts' + (Object.keys(query).length ? '?' + new URLSearchParams(Object.entries(query).filter(([, v]) => typeof v === 'string')).toString() : ''); %>
+<p class="muted small">Drafts are private to their authors, so they are listed here but cannot be opened.</p>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Title</th><th>Blog</th><th>Author</th><th>Status</th><th>Comments</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+  <% posts.forEach((p) => { %>
+    <tr>
+      <td><% if (p.status === 'published') { %><a href="/posts/<%= p.id %>"><%= p.title %></a><% } else { %><%= p.title %><% } %></td>
+      <td><a href="/b/<%= p.blog_slug %>"><%= p.blog_name %></a></td>
+      <td><a href="/u/<%= p.user_id %>"><%= p.user_name %></a></td>
+      <td><span class="tag tag-<%= p.status %>"><%= p.status === 'draft' ? 'Draft' : 'Published' %></span></td>
+      <td><%= p.comment_count %></td>
+      <td class="muted small"><%= h.formatDate(p.created_at) %></td>
+      <td class="row-actions"><%- include('_action', { action: `/admin/posts/${p.id}/delete`, label: 'Delete', backUrl, danger: true, confirm: `Delete the post "${p.title}"? This cannot be undone.` }) %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<% if (!posts.length) { %><p class="empty">No posts found.</p><% } %>
+<%- include('../partials/pager') %>
+<%- include('../partials/footer') %>

@@ -1,0 +1,14 @@
+<nav class="tabs">
+  <a class="<%= tab === 'overview' ? 'active' : '' %>" href="/admin">Overview</a>
+  <a class="<%= tab === 'users' ? 'active' : '' %>" href="/admin/users">Users</a>
+  <a class="<%= tab === 'blogs' ? 'active' : '' %>" href="/admin/blogs">Blogs</a>
+  <a class="<%= tab === 'posts' ? 'active' : '' %>" href="/admin/posts">Posts</a>
+  <a class="<%= tab === 'comments' ? 'active' : '' %>" href="/admin/comments">Comments</a>
+</nav>
+<% if (tab !== 'overview') { %>
+<form class="searchform" method="get">
+  <input type="search" name="q" value="<%= q %>" placeholder="Search <%= tab %>" aria-label="Search">
+  <button class="btn btn-ghost" type="submit">Search</button>
+  <% if (q) { %><a class="btn btn-ghost" href="/admin/<%= tab %>">Clear</a><% } %>
+</form>
+<% } %>

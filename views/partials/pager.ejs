@@ -1,0 +1,9 @@
+<% if (pager && pager.pages > 1) {
+  const link = (p) => { const params = new URLSearchParams(); for (const [k, v] of Object.entries(query)) if (k !== 'page' && typeof v === 'string') params.set(k, v); params.set('page', p); return '?' + params.toString(); };
+%>
+<nav class="pager">
+  <% if (pager.hasPrev) { %><a class="btn btn-ghost" href="<%= link(pager.page - 1) %>">&larr; Newer</a><% } else { %><span></span><% } %>
+  <span class="muted">Page <%= pager.page %> of <%= pager.pages %></span>
+  <% if (pager.hasNext) { %><a class="btn btn-ghost" href="<%= link(pager.page + 1) %>">Older &rarr;</a><% } else { %><span></span><% } %>
+</nav>
+<% } %>

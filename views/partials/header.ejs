@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= title ? `${title} · ${siteName}` : siteName %></title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <% if (typeof useEditor !== 'undefined' && useEditor) { %>
+  <link rel="stylesheet" href="/vendor/quill/quill.snow.css">
+  <script src="/vendor/quill/quill.js" defer></script>
+  <script src="/static/js/editor.js" defer></script>
+  <% } %>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="/"><%= siteName %></a>
+    <form class="topsearch" action="/search" method="get" role="search">
+      <input type="search" name="q" placeholder="Search posts" aria-label="Search posts" value="<%= path === '/search' && typeof query.q === 'string' ? query.q : '' %>">
+    </form>
+    <nav class="topnav">
+      <a class="hide-sm" href="/blogs">Blogs</a>
+      <% if (currentUser) { %>
+        <% if (currentUser.blog) { %>
+          <a class="btn btn-small" href="/posts/new">Write</a>
+          <a class="hide-sm" href="/dashboard">My blog</a>
+        <% } else { %>
+          <a class="btn btn-small" href="/my-blog">Start a blog</a>
+        <% } %>
+        <% if (currentUser.is_admin) { %><a href="/admin">Admin</a><% } %>
+        <details class="menu">
+          <summary aria-label="Account menu"><%- include('avatar', { user: currentUser, size: 32 }) %></summary>
+          <div class="menu-panel">
+            <div class="menu-name"><%= currentUser.name %></div>
+            <% if (currentUser.blog) { %><a href="/dashboard">My blog</a><% } %>
+            <a href="/u/<%= currentUser.id %>">My profile</a>
+            <a href="/settings">Settings</a>
+            <form method="post" action="/logout">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="linklike">Log out</button>
+            </form>
+          </div>
+        </details>
+      <% } else { %>
+        <a href="/login">Log in</a>
+        <a class="btn btn-small" href="/signup">Sign up</a>
+      <% } %>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+<% if (flash) { %>
+  <div class="flash flash-<%= flash.kind %>" role="status"><%= flash.message %></div>
+<% } %>

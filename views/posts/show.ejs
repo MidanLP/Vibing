@@ -1,0 +1,84 @@
+<%- include('../partials/header', { useEditor: Boolean(currentUser) }) %>
+<article class="post">
+  <% if (post.status === 'draft') { %>
+    <div class="flash flash-info">This is a draft. Only you can see it. <a href="/posts/<%= post.id %>/edit">Edit and publish</a></div>
+  <% } %>
+  <header class="post-head">
+    <p class="muted small"><a href="/b/<%= post.blog_slug %>"><%= post.blog_name %></a></p>
+    <h1 class="post-title"><%= post.title %></h1>
+    <div class="byline">
+      <%- include('../partials/avatar', { user: { name: post.author_name, avatar: post.author_avatar }, size: 40 }) %>
+      <div>
+        <a href="/u/<%= post.author_id %>"><strong><%= post.author_name %></strong></a>
+        <div class="muted small">
+          <%= h.formatDate(post.published_at || post.updated_at) %> · <%= h.readingTime(post.content_text) %> min read
+        </div>
+      </div>
+      <% if (currentUser && currentUser.id === post.author_id) { %>
+        <div class="post-owner-actions">
+          <a class="btn btn-ghost btn-small" href="/posts/<%= post.id %>/edit">Edit</a>
+          <form method="post" action="/posts/<%= post.id %>/delete" data-confirm="Delete this post? This cannot be undone.">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-ghost btn-small danger" type="submit">Delete</button>
+          </form>
+        </div>
+      <% } %>
+    </div>
+  </header>
+  <% if (post.cover_image) { %><img class="post-cover" src="<%= post.cover_image %>" alt=""><% } %>
+  <div class="prose"><%- post.content_html %></div>
+
+  <% if (post.author_bio) { %>
+  <aside class="authorbox">
+    <%- include('../partials/avatar', { user: { name: post.author_name, avatar: post.author_avatar }, size: 56 }) %>
+    <div>
+      <div class="muted small">Written by</div>
+      <a href="/u/<%= post.author_id %>"><strong><%= post.author_name %></strong></a>
+      <p><%= post.author_bio %></p>
+    </div>
+  </aside>
+  <% } %>
+
+  <% if (post.status === 'published') { %>
+  <section class="comments" id="comments">
+    <h2><%= comments.length %> <%= comments.length === 1 ? 'comment' : 'comments' %></h2>
+    <% comments.forEach((c) => { %>
+      <div class="comment" id="comment-<%= c.id %>">
+        <div class="byline small">
+          <%- include('../partials/avatar', { user: { name: c.user_name, avatar: c.user_avatar }, size: 28 }) %>
+          <a href="/u/<%= c.user_id %>"><strong><%= c.user_name %></strong></a>
+          <span class="muted"><%= h.formatDate(c.created_at) %><%= c.updated_at !== c.created_at ? ' (edited)' : '' %></span>
+        </div>
+        <div class="comment-body"><%- c.content_html %></div>
+        <% if (currentUser) {
+          const mine = currentUser.id === c.user_id;
+          const canDelete = mine || currentUser.id === post.author_id || currentUser.is_admin; %>
+          <% if (mine || canDelete) { %>
+          <div class="comment-actions small">
+            <% if (mine) { %><a href="/comments/<%= c.id %>/edit">Edit</a><% } %>
+            <% if (canDelete) { %>
+            <form method="post" action="/comments/<%= c.id %>/delete" data-confirm="Delete this comment?">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="linklike danger" type="submit">Delete</button>
+            </form>
+            <% } %>
+          </div>
+          <% } %>
+        <% } %>
+      </div>
+    <% }) %>
+
+    <% if (currentUser) { %>
+      <form class="comment-form" method="post" action="/posts/<%= post.id %>/comments" data-rich-form>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="content" data-rich-input>
+        <div class="comment-editor"><div class="editor editor-small" data-rich-editor="comment" data-placeholder="Write a comment…"></div></div>
+        <button class="btn" type="submit">Post comment</button>
+      </form>
+    <% } else { %>
+      <p class="muted"><a href="/login?next=<%= encodeURIComponent('/posts/' + post.id + '#comments') %>">Log in</a> or <a href="/signup">sign up</a> to leave a comment.</p>
+    <% } %>
+  </section>
+  <% } %>
+</article>
+<%- include('../partials/footer') %>

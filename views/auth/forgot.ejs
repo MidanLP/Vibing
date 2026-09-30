@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+<div class="formbox">
+  <h1>Forgot your password?</h1>
+  <% if (sent) { %>
+    <p>If an account with that email exists, we have sent it a link to choose a new password. The link works for one hour.</p>
+    <p><a href="/login">Back to log in</a></p>
+  <% } else { %>
+    <%- include('../partials/error-box') %>
+    <p class="muted">Enter the email you signed up with and we will send you a link to choose a new password.</p>
+    <form method="post" action="/forgot-password">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Email <input type="email" name="email" required autocomplete="email" autofocus></label>
+      <button class="btn btn-block" type="submit">Send reset link</button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

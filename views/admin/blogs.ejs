@@ -1,0 +1,23 @@
+<%- include('../partials/header') %>
+<h1>Admin: blogs</h1>
+<%- include('_nav') %>
+<% const backUrl = '/admin/blogs' + (Object.keys(query).length ? '?' + new URLSearchParams(Object.entries(query).filter(([, v]) => typeof v === 'string')).toString() : ''); %>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Blog</th><th>Owner</th><th>Posts</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+  <% blogs.forEach((b) => { %>
+    <tr class="<%= b.is_banned ? 'row-banned' : '' %>">
+      <td><a href="/b/<%= b.slug %>"><%= b.name %></a> <span class="muted small">/b/<%= b.slug %></span></td>
+      <td><a href="/u/<%= b.user_id %>"><%= b.user_name %></a><% if (b.is_banned) { %> <span class="tag tag-banned">Banned</span><% } %></td>
+      <td><%= b.post_count %></td>
+      <td class="muted small"><%= h.formatDate(b.created_at) %></td>
+      <td class="row-actions"><%- include('_action', { action: `/admin/blogs/${b.id}/delete`, label: 'Delete', backUrl, danger: true, confirm: `Delete the blog "${b.name}" and all of its posts? This cannot be undone.` }) %></td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<% if (!blogs.length) { %><p class="empty">No blogs found.</p><% } %>
+<%- include('../partials/pager') %>
+<%- include('../partials/footer') %>

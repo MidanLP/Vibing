@@ -1,0 +1,24 @@
+<%- include('../partials/header') %>
+<div class="narrow">
+  <section class="profile">
+    <%- include('../partials/avatar', { user: profile, size: 96 }) %>
+    <div>
+      <h1><%= profile.name %></h1>
+      <% if (profile.bio) { %><p class="bio"><%= profile.bio %></p><% } %>
+      <p class="muted small">Member since <%= h.formatDate(profile.created_at) %></p>
+      <% if (currentUser && currentUser.id === profile.id) { %><a class="btn btn-ghost btn-small" href="/settings">Edit profile</a><% } %>
+    </div>
+  </section>
+  <% if (blog) { %>
+    <section class="blogbox">
+      <h2><a href="/b/<%= blog.slug %>"><%= blog.name %></a></h2>
+      <% if (blog.description) { %><p class="muted"><%= blog.description %></p><% } %>
+    </section>
+    <% if (posts.length) { %>
+      <h3 class="section-title">Recent posts</h3>
+      <% posts.forEach((post) => { %><%- include('../partials/post-card', { post }) %><% }) %>
+      <p><a href="/b/<%= blog.slug %>">See all posts &rarr;</a></p>
+    <% } %>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

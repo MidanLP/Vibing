@@ -1,0 +1,38 @@
+<%- include('../partials/header') %>
+<h1>Admin: users</h1>
+<%- include('_nav') %>
+<% const backUrl = '/admin/users' + (Object.keys(query).length ? '?' + new URLSearchParams(Object.entries(query).filter(([, v]) => typeof v === 'string')).toString() : ''); %>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>User</th><th>Email</th><th>Blog</th><th>Posts</th><th>Comments</th><th>Joined</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  <% users.forEach((u) => { %>
+    <tr class="<%= u.is_banned ? 'row-banned' : '' %>">
+      <td><a href="/u/<%= u.id %>"><%= u.name %></a></td>
+      <td class="small"><%= u.email %></td>
+      <td><% if (u.blog_slug) { %><a href="/b/<%= u.blog_slug %>">/b/<%= u.blog_slug %></a><% } else { %><span class="muted">–</span><% } %></td>
+      <td><%= u.post_count || 0 %></td>
+      <td><%= u.comment_count %></td>
+      <td class="muted small"><%= h.formatDate(u.created_at) %></td>
+      <td>
+        <% if (u.is_admin) { %><span class="tag">Admin</span><% } %>
+        <% if (u.is_banned) { %><span class="tag tag-banned">Banned</span><% } %>
+      </td>
+      <td class="row-actions">
+        <% if (u.id !== currentUser.id) { %>
+          <% if (u.is_banned) { %>
+            <%- include('_action', { action: `/admin/users/${u.id}/unban`, label: 'Unban', backUrl }) %>
+          <% } else { %>
+            <%- include('_action', { action: `/admin/users/${u.id}/ban`, label: 'Ban', backUrl, danger: true, confirm: `Ban ${u.name}? They will be logged out, cannot log in, and everything they wrote is hidden.` }) %>
+          <% } %>
+          <%- include('_action', { action: `/admin/users/${u.id}/delete`, label: 'Delete', backUrl, danger: true, confirm: `Permanently delete ${u.name} with their blog, posts and comments? This cannot be undone.` }) %>
+        <% } else { %><span class="muted small">you</span><% } %>
+      </td>
+    </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<% if (!users.length) { %><p class="empty">No users found.</p><% } %>
+<%- include('../partials/pager') %>
+<%- include('../partials/footer') %>

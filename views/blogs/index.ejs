@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+<div class="narrow">
+  <h1>Blogs</h1>
+  <% if (!blogs.length) { %><p class="empty">There are no blogs yet.</p><% } %>
+  <% blogs.forEach((blog) => { %>
+    <article class="card">
+      <div class="card-body">
+        <h2 class="card-title"><a href="/b/<%= blog.slug %>"><%= blog.name %></a></h2>
+        <% if (blog.description) { %><p class="card-excerpt"><%= blog.description %></p><% } %>
+        <div class="byline small">
+          <%- include('../partials/avatar', { user: { name: blog.author_name, avatar: blog.author_avatar }, size: 22 }) %>
+          <a href="/u/<%= blog.user_id %>"><%= blog.author_name %></a>
+          <span class="muted">· <%= blog.post_count %> <%= blog.post_count === 1 ? 'post' : 'posts' %></span>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+  <%- include('../partials/pager') %>
+</div>
+<%- include('../partials/footer') %>

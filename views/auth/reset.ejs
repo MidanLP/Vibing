@@ -1,0 +1,16 @@
+<%- include('../partials/header') %>
+<div class="formbox">
+  <h1>Choose a new password</h1>
+  <% if (!valid) { %>
+    <p>This link is invalid or has expired. <a href="/forgot-password">Ask for a new one</a>.</p>
+  <% } else { %>
+    <%- include('../partials/error-box') %>
+    <form method="post" action="/reset-password/<%= encodeURIComponent(token) %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>New password <small class="muted">(at least 8 characters)</small><input type="password" name="password" minlength="8" maxlength="200" required autocomplete="new-password" autofocus></label>
+      <label>Repeat new password <input type="password" name="password2" minlength="8" maxlength="200" required autocomplete="new-password"></label>
+      <button class="btn btn-block" type="submit">Save new password</button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

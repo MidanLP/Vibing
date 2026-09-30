@@ -1,0 +1,2 @@
+<% const s = typeof size !== 'undefined' ? size : 40; %>
+<% if (user && user.avatar) { %><img class="avatar" src="<%= user.avatar %>" alt="" width="<%= s %>" height="<%= s %>" style="width:<%= s %>px;height:<%= s %>px"><% } else { %><span class="avatar avatar-initials" style="width:<%= s %>px;height:<%= s %>px;font-size:<%= Math.round(s * 0.42) %>px" aria-hidden="true"><%= ((user && user.name) || '?').trim().charAt(0).toUpperCase() %></span><% } %>

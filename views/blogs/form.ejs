@@ -1,0 +1,19 @@
+<%- include('../partials/header') %>
+<div class="formbox formbox-wide">
+  <h1><%= isNew ? 'Create your blog' : 'Blog settings' %></h1>
+  <%- include('../partials/error-box') %>
+  <form method="post" action="<%= isNew ? '/my-blog' : '/my-blog/edit' %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Blog name <input name="name" value="<%= values.name || '' %>" maxlength="100" required placeholder="e.g. Notes from the Kitchen" data-slug-source></label>
+    <label>Short description <textarea name="description" rows="3" maxlength="500" placeholder="What will you write about?"><%= values.description || '' %></textarea></label>
+    <label>Web address
+      <span class="slugfield"><span class="muted">/b/</span><input name="slug" value="<%= values.slug || '' %>" maxlength="40" placeholder="notes-from-the-kitchen" data-slug-target <%= isNew ? '' : 'data-slug-locked' %>></span>
+    </label>
+    <small class="muted">Lowercase letters, numbers and dashes. Leave empty to make one from the name.</small>
+    <div class="actions">
+      <button class="btn" type="submit"><%= isNew ? 'Create blog' : 'Save' %></button>
+      <% if (!isNew) { %><a class="btn btn-ghost" href="/dashboard">Cancel</a><% } %>
+    </div>
+  </form>
+</div>
+<%- include('../partials/footer') %>

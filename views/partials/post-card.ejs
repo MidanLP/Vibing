@@ -1,0 +1,18 @@
+<article class="card">
+  <div class="card-body">
+    <% if (post.author_name) { %>
+    <div class="byline small">
+      <%- include('avatar', { user: { name: post.author_name, avatar: post.author_avatar }, size: 22 }) %>
+      <a href="/u/<%= post.author_id %>"><%= post.author_name %></a>
+      <span class="muted">in</span>
+      <a href="/b/<%= post.blog_slug %>"><%= post.blog_name %></a>
+    </div>
+    <% } %>
+    <h2 class="card-title"><a href="/posts/<%= post.id %>"><%= post.title %></a></h2>
+    <p class="card-excerpt"><%= h.excerpt(post.content_text) %></p>
+    <div class="muted small"><%= h.formatDate(post.published_at) %> · <%= h.readingTime(post.content_text) %> min read</div>
+  </div>
+  <% if (post.cover_image) { %>
+  <a class="card-cover" href="/posts/<%= post.id %>" tabindex="-1"><img src="<%= post.cover_image %>" alt=""></a>
+  <% } %>
+</article>

@@ -1,0 +1,15 @@
+<%- include('../partials/header') %>
+<div class="narrow">
+  <section class="blog-head">
+    <h1><%= blog.name %></h1>
+    <% if (blog.description) { %><p class="lead"><%= blog.description %></p><% } %>
+    <div class="byline">
+      <%- include('../partials/avatar', { user: { name: blog.author_name, avatar: blog.author_avatar }, size: 28 }) %>
+      <span>by <a href="/u/<%= blog.user_id %>"><%= blog.author_name %></a></span>
+    </div>
+  </section>
+  <% if (!posts.length) { %><p class="empty">No posts yet.</p><% } %>
+  <% posts.forEach((post) => { %><%- include('../partials/post-card', { post }) %><% }) %>
+  <%- include('../partials/pager') %>
+</div>
+<%- include('../partials/footer') %>

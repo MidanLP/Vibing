@@ -1,0 +1,5 @@
+<form method="post" action="<%= action %>" <% if (typeof confirm !== 'undefined' && confirm) { %>data-confirm="<%= confirm %>"<% } %>>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="back" value="<%= backUrl %>">
+  <button class="linklike <%= typeof danger !== 'undefined' && danger ? 'danger' : '' %>" type="submit"><%= label %></button>
+</form>

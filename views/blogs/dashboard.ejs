@@ -1,0 +1,39 @@
+<%- include('../partials/header') %>
+<div class="narrow">
+  <div class="dash-head">
+    <div>
+      <h1><%= blog.name %></h1>
+      <p class="muted">
+        <a href="/b/<%= blog.slug %>">View your blog</a> ·
+        <a href="/my-blog/edit">Blog settings</a>
+      </p>
+    </div>
+    <a class="btn" href="/posts/new">Write a new post</a>
+  </div>
+
+  <% if (!posts.length) { %>
+    <p class="empty">You have not written anything yet. <a href="/posts/new">Write your first post</a>.</p>
+  <% } else { %>
+  <table class="table">
+    <thead><tr><th>Title</th><th>Status</th><th>Comments</th><th>Last change</th><th></th></tr></thead>
+    <tbody>
+    <% posts.forEach((post) => { %>
+      <tr>
+        <td><a href="/posts/<%= post.id %><%= post.status === 'draft' ? '/edit' : '' %>"><%= post.title %></a></td>
+        <td><span class="tag tag-<%= post.status %>"><%= post.status === 'draft' ? 'Draft' : 'Published' %></span></td>
+        <td><%= post.comment_count %></td>
+        <td class="muted"><%= h.formatDate(post.updated_at) %></td>
+        <td class="row-actions">
+          <a href="/posts/<%= post.id %>/edit">Edit</a>
+          <form method="post" action="/posts/<%= post.id %>/delete" data-confirm="Delete “<%= post.title %>”? This cannot be undone.">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="linklike danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>
