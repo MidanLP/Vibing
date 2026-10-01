@@ -1,5 +1,5 @@
 # systemd service: starts the site when the server boots and restarts it if
-# it ever crashes. Installed by DEPLOY.md, step 9.
+# it ever crashes. Installed by DEPLOY.md, step 6.
 [Unit]
 Description=Inkwell blogging site
 After=network.target

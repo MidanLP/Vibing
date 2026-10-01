@@ -1,6 +1,6 @@
 #!/bin/bash
 # Makes a backup of the database and the uploaded pictures into one file.
-# Used on the server, see DEPLOY.md, step 13.
+# Used on the server, see DEPLOY.md, step 10.
 set -euo pipefail
 
 DATA_DIR="${DATA_DIR:-/var/lib/inkwell/data}"
