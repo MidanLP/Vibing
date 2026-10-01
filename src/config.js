@@ -1,7 +1,6 @@
 'use strict';
-const path = require('node:path');
-
 const fs = require('node:fs');
+const path = require('node:path');
 
 const rootDir = path.resolve(__dirname, '..');
 
@@ -19,6 +18,9 @@ module.exports = {
   uploadsDir: path.join(dataDir, 'uploads'),
   dbFile: path.join(dataDir, 'blog.db'),
   port,
+  // Set HOST=127.0.0.1 on a server, so that only the web server in front
+  // (Caddy) can reach the app directly.
+  host: process.env.HOST || undefined,
   baseUrl,
   siteName: process.env.SITE_NAME || 'Inkwell',
   secureCookies: baseUrl.startsWith('https://'),

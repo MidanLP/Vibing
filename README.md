@@ -98,17 +98,10 @@ You don't need any settings to try the site. To change the site name or port, or
 copy the file `.env.example` to a new file named `.env` and edit the values. The file explains each one.
 Restart the site after changing it.
 
-## Putting it online later
+## Putting it online
 
-When you're ready, the site can run on any host that supports Node.js and keeps files between restarts
-(for example a small VPS, Render with a disk, Railway with a volume, or Fly.io with a volume). Things to set up:
-
-- `BASE_URL`: your real address, starting with `https://`. This also switches on secure cookies.
-- `TRUST_PROXY=1`: needed on most hosting platforms.
-- Email settings (`SMTP_...`), so password reset emails are actually sent.
-- A permanent disk or volume for the `data` folder. Otherwise your posts and pictures are lost when the host restarts.
-  You can point `DATA_DIR` to where that disk is mounted.
-- Regular backups of the `data` folder.
+**[DEPLOY.md](DEPLOY.md)** is a step-by-step guide for putting the site on your own Ubuntu server with Apache.
+It covers HTTPS, starting automatically after a restart, your admin account, and nightly backups.
 
 ## For developers
 

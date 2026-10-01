@@ -1,0 +1,25 @@
+# systemd service: starts the site when the server boots and restarts it if
+# it ever crashes. Installed by DEPLOY.md, step 9.
+[Unit]
+Description=Inkwell blogging site
+After=network.target
+
+[Service]
+Type=simple
+User=inkwell
+Group=inkwell
+WorkingDirectory=/opt/inkwell
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+# Security: the app can only write to its data folder.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/inkwell
+
+[Install]
+WantedBy=multi-user.target
