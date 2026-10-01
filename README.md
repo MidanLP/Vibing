@@ -41,6 +41,11 @@ You need version 22.13 or newer. Any current LTS download is fine.
 
    It takes a minute. Warnings are normal. It is done when you can type again.
 
+   > **Windows: error "running scripts is disabled on this system"?** You are in PowerShell, which blocks
+   > `npm` by default. Either type `npm.cmd` instead of `npm` (for example `npm.cmd install`, `npm.cmd start`),
+   > or run this once and answer `Y`: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Then close the
+   > window, open a new one, and use `npm` normally.
+
 ### 3. Start the site
 
 In the same terminal window, type:
