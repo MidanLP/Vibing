@@ -35,7 +35,7 @@ async function uploadFile(quill, file, index) {
     const response = await fetch('/uploads/image', {
       method: 'POST',
       body,
-      headers: { 'x-csrf-token': csrfToken() },
+      headers: { 'x-csrf-token': csrfToken(), accept: 'application/json' },
       credentials: 'same-origin',
     });
     const data = await response.json().catch(() => ({}));

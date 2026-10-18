@@ -74,4 +74,42 @@ function deleteAllImagesOfUser(userId) {
   for (const row of rows) deleteImage(`/uploads/${row.filename}`);
 }
 
-module.exports = { singleImage, saveImage, deleteImage, deleteAllImagesOfUser, detectImageType };
+const FILENAME_RE = /^[a-f0-9]{32}\.(?:jpg|png|gif|webp)$/;
+
+/**
+ * Who may see an uploaded picture: the person who uploaded it, and everyone
+ * else only if it is a profile picture or is used in a published post (of a
+ * user who is not banned). Pictures of drafts stay private, like the draft.
+ */
+function canViewImage(filename, user) {
+  if (!FILENAME_RE.test(filename)) return false;
+  if (user && db.prepare('SELECT 1 FROM uploads WHERE filename = ? AND user_id = ?').get(filename, user.id)) {
+    return true;
+  }
+  if (db.prepare('SELECT 1 FROM users WHERE avatar = ? AND is_banned = 0').get(`/uploads/${filename}`)) return true;
+  return Boolean(db.prepare(`
+    SELECT 1 FROM post_images pi
+    JOIN posts p ON p.id = pi.post_id JOIN blogs b ON b.id = p.blog_id JOIN users u ON u.id = b.user_id
+    WHERE pi.filename = ? AND p.status = 'published' AND u.is_banned = 0 LIMIT 1`).get(filename));
+}
+
+/** Express handler for GET /uploads/:file */
+function serveImage(req, res, next) {
+  const filename = String(req.params.file);
+  if (!canViewImage(filename, req.user)) return next();
+  res.sendFile(filename, {
+    root: config.uploadsDir,
+    dotfiles: 'deny',
+    cacheControl: false,
+    headers: {
+      // Browsers must ask again every time, so a picture disappears as soon
+      // as its post is turned back into a draft or deleted.
+      'Cache-Control': 'private, no-cache',
+      'Content-Security-Policy': "default-src 'none'",
+    },
+  }, (err) => {
+    if (err && !res.headersSent) next();
+  });
+}
+
+module.exports = { singleImage, saveImage, deleteImage, deleteAllImagesOfUser, detectImageType, canViewImage, serveImage };

@@ -23,7 +23,7 @@ function loadComment(id) {
     WHERE c.id = ?`).get(id);
 }
 
-router.post('/posts/:id/comments', auth.requireLogin, (req, res, next) => {
+router.post('/posts/:id/comments', auth.requireVerified, (req, res, next) => {
   const id = toId(req.params.id);
   const post = id && db.prepare(`
     SELECT p.id FROM posts p JOIN blogs b ON b.id = p.blog_id JOIN users u ON u.id = b.user_id
@@ -40,14 +40,14 @@ router.post('/posts/:id/comments', auth.requireLogin, (req, res, next) => {
   res.redirect(`/posts/${post.id}#comment-${lastInsertRowid}`);
 });
 
-router.get('/comments/:id/edit', auth.requireLogin, (req, res, next) => {
+router.get('/comments/:id/edit', auth.requireVerified, (req, res, next) => {
   const id = toId(req.params.id);
   const comment = id && loadComment(id);
   if (!comment || comment.user_id !== req.user.id) return next();
   res.render('comments/edit', { title: 'Edit comment', comment, error: null });
 });
 
-router.post('/comments/:id', auth.requireLogin, (req, res, next) => {
+router.post('/comments/:id', auth.requireVerified, (req, res, next) => {
   const id = toId(req.params.id);
   const comment = id && loadComment(id);
   if (!comment || comment.user_id !== req.user.id) return next();

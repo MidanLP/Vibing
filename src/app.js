@@ -15,11 +15,23 @@ if (config.trustProxy) app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.use(helmet({
+  // Only what the site uses: its own scripts, styles and pictures. `blob:`
+  // is for the preview of a picture before it is uploaded.
   contentSecurityPolicy: {
-    useDefaults: true,
+    useDefaults: false,
     directives: {
-      'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
-      'upgrade-insecure-requests': config.secureCookies ? [] : null,
+      'default-src': ["'self'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'"],
+      'frame-ancestors': ["'none'"],
+      'object-src': ["'none'"],
+      'script-src': ["'self'"],
+      'script-src-attr': ["'none'"],
+      'style-src': ["'self'"],
+      'img-src': ["'self'", 'blob:'],
+      'font-src': ["'self'"],
+      'connect-src': ["'self'"],
+      ...(config.secureCookies ? { 'upgrade-insecure-requests': [] } : {}),
     },
   },
   strictTransportSecurity: config.secureCookies,
@@ -28,10 +40,6 @@ app.use(helmet({
 
 app.use('/static', express.static(path.join(config.rootDir, 'public'), { maxAge: '1h' }));
 app.use('/vendor/quill', express.static(path.join(config.rootDir, 'node_modules/quill/dist'), { maxAge: '1d' }));
-app.use('/uploads', express.static(config.uploadsDir, {
-  maxAge: '7d',
-  setHeaders: (res) => res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'"),
-}));
 
 app.use((req, res, next) => {
   res.locals.siteName = config.siteName;
@@ -46,6 +54,8 @@ app.use((req, res, next) => {
 });
 
 app.use(cookieParser());
+// Uploaded pictures: served only to people allowed to see them (see uploads.js).
+app.get('/uploads/:file', auth.loadUser, require('./uploads').serveImage);
 app.use(express.urlencoded({ extended: false, limit: '3mb' }));
 app.use(express.json({ limit: '100kb' }));
 

@@ -47,12 +47,12 @@ router.get('/blogs', (req, res) => {
 });
 
 // Create your blog / go to your dashboard
-router.get('/my-blog', auth.requireLogin, (req, res) => {
+router.get('/my-blog', auth.requireVerified, (req, res) => {
   if (req.user.blog) return res.redirect('/dashboard');
   res.render('blogs/form', { title: 'Create your blog', values: {}, error: null, isNew: true });
 });
 
-router.post('/my-blog', auth.requireLogin, (req, res) => {
+router.post('/my-blog', auth.requireVerified, (req, res) => {
   if (req.user.blog) return res.redirect('/dashboard');
   const { values, error } = validateBlog(req.body, null);
   if (error) return res.status(400).render('blogs/form', { title: 'Create your blog', values, error, isNew: true });
@@ -62,13 +62,13 @@ router.post('/my-blog', auth.requireLogin, (req, res) => {
   res.redirect('/dashboard');
 });
 
-router.get('/my-blog/edit', auth.requireLogin, (req, res) => {
+router.get('/my-blog/edit', auth.requireVerified, (req, res) => {
   if (!req.user.blog) return res.redirect('/my-blog');
   const blog = db.prepare('SELECT * FROM blogs WHERE id = ?').get(req.user.blog.id);
   res.render('blogs/form', { title: 'Blog settings', values: blog, error: null, isNew: false });
 });
 
-router.post('/my-blog/edit', auth.requireLogin, (req, res) => {
+router.post('/my-blog/edit', auth.requireVerified, (req, res) => {
   if (!req.user.blog) return res.redirect('/my-blog');
   const { values, error } = validateBlog(req.body, req.user.blog.id);
   if (error) return res.status(400).render('blogs/form', { title: 'Blog settings', values, error, isNew: false });

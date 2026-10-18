@@ -85,6 +85,13 @@ label.check { font-weight: 400; display: flex; gap: 8px; align-items: center; }
 
 /* ---------- avatars ---------- */
 .avatar { border-radius: 50%; object-fit: cover; flex: none; display: inline-block; vertical-align: middle; }
+.avatar-22 { width: 22px; height: 22px; font-size: 9px; }
+.avatar-28 { width: 28px; height: 28px; font-size: 12px; }
+.avatar-32 { width: 32px; height: 32px; font-size: 13px; }
+.avatar-40 { width: 40px; height: 40px; font-size: 17px; }
+.avatar-56 { width: 56px; height: 56px; font-size: 24px; }
+.avatar-88 { width: 88px; height: 88px; font-size: 37px; }
+.avatar-96 { width: 96px; height: 96px; font-size: 40px; }
 .avatar-initials { display: inline-flex; align-items: center; justify-content: center; background: #d9e8d8; color: #2c5a2a; font-weight: 700; }
 .byline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .byline a { text-decoration: none; }

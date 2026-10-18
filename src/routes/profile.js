@@ -24,7 +24,7 @@ router.get('/settings', auth.requireLogin, (req, res) => {
   res.render('profile/settings', { title: 'Your profile', values: req.user, error: null, pwError: null });
 });
 
-router.post('/settings', auth.requireLogin, singleImage('avatar'), auth.verifyCsrf, (req, res) => {
+router.post('/settings', auth.requireVerified, singleImage('avatar'), auth.verifyCsrf, (req, res) => {
   const values = { ...req.user, name: str(req.body.name, 80), bio: str(req.body.bio, 500) };
   let error = req.uploadError || null;
   if (!error && !values.name) error = 'Please enter your name.';

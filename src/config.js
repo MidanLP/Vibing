@@ -33,6 +33,8 @@ module.exports = {
     pass: process.env.SMTP_PASS || '',
     from: process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@localhost',
   },
+  // Sign-up, log-in and email requests allowed per visitor per 15 minutes.
+  authRateLimit: Number(process.env.AUTH_RATE_LIMIT) || 20,
   maxUploadBytes: 5 * 1024 * 1024,
   sessionDays: 30,
 };

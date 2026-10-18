@@ -10,8 +10,10 @@ const linkTransform = (tagName, attribs) => ({
   },
 });
 
-// Only images hosted on this site or over http(s) are allowed in posts.
-const imageFilter = (frame) => frame.tag === 'img' && !frame.attribs.src;
+// Only pictures uploaded to this site are allowed in posts. (Pictures from
+// other sites could track readers, and the Content-Security-Policy blocks them.)
+const UPLOADED_IMAGE_RE = /^\/uploads\/[a-f0-9]{32}\.(?:jpg|png|gif|webp)$/;
+const imageFilter = (frame) => frame.tag === 'img' && !UPLOADED_IMAGE_RE.test(frame.attribs.src || '');
 
 const POST_OPTIONS = {
   allowedTags: [
@@ -24,7 +26,6 @@ const POST_OPTIONS = {
     img: ['src', 'alt'],
   },
   allowedSchemes: ['http', 'https', 'mailto'],
-  allowedSchemesByTag: { img: ['http', 'https'] },
   allowProtocolRelative: false,
   transformTags: { a: linkTransform },
   exclusiveFilter: imageFilter,

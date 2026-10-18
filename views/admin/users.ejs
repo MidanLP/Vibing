@@ -17,9 +17,13 @@
       <td>
         <% if (u.is_admin) { %><span class="tag">Admin</span><% } %>
         <% if (u.is_banned) { %><span class="tag tag-banned">Banned</span><% } %>
+        <% if (!u.email_verified) { %><span class="tag tag-draft">Unverified</span><% } %>
       </td>
       <td class="row-actions">
         <% if (u.id !== currentUser.id) { %>
+          <% if (!u.email_verified) { %>
+            <%- include('_action', { action: `/admin/users/${u.id}/verify`, label: 'Confirm email', backUrl, confirm: `Confirm the email address of ${u.name} without the email link? Only do this if you know the address belongs to them.` }) %>
+          <% } %>
           <% if (u.is_banned) { %>
             <%- include('_action', { action: `/admin/users/${u.id}/unban`, label: 'Unban', backUrl }) %>
           <% } else { %>

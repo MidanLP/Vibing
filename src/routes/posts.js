@@ -4,6 +4,7 @@ const { db } = require('../db');
 const auth = require('../auth');
 const { singleImage, saveImage, deleteImage } = require('../uploads');
 const { sanitizePostHtml, htmlToText, hasContent } = require('../sanitize');
+const { syncPostImages } = require('../post-images');
 const { str, toId, pageParams, pagination, likePattern, nowSql } = require('../helpers');
 
 const router = express.Router();
@@ -104,11 +105,11 @@ function postFormError(req, values) {
   return null;
 }
 
-router.get('/posts/new', auth.requireLogin, requireBlog, (req, res) => {
+router.get('/posts/new', auth.requireVerified, requireBlog, (req, res) => {
   res.render('posts/form', { title: 'New post', post: { status: 'draft' }, error: null, isNew: true });
 });
 
-router.post('/posts', auth.requireLogin, requireBlog, singleImage('cover'), auth.verifyCsrf, (req, res) => {
+router.post('/posts', auth.requireVerified, requireBlog, singleImage('cover'), auth.verifyCsrf, (req, res) => {
   const values = readPostForm(req);
   const error = postFormError(req, values);
   if (error) {
@@ -122,15 +123,16 @@ router.post('/posts', auth.requireLogin, requireBlog, singleImage('cover'), auth
     req.user.blog.id, values.title, cover, values.content_html, values.content_text,
     values.publish ? 'published' : 'draft', now, now, values.publish ? now : null,
   );
+  syncPostImages(db, Number(lastInsertRowid), cover, values.content_html);
   auth.setFlash(res, values.publish ? 'Your post is published!' : 'Draft saved. Only you can see it.');
   res.redirect(values.publish ? `/posts/${lastInsertRowid}` : `/posts/${lastInsertRowid}/edit`);
 });
 
-router.get('/posts/:id/edit', auth.requireLogin, ownPost, (req, res) => {
+router.get('/posts/:id/edit', auth.requireVerified, ownPost, (req, res) => {
   res.render('posts/form', { title: 'Edit post', post: req.post, error: null, isNew: false });
 });
 
-router.post('/posts/:id', auth.requireLogin, ownPost, singleImage('cover'), auth.verifyCsrf, (req, res) => {
+router.post('/posts/:id', auth.requireVerified, ownPost, singleImage('cover'), auth.verifyCsrf, (req, res) => {
   const post = req.post;
   const values = readPostForm(req);
   const error = postFormError(req, values);
@@ -156,6 +158,7 @@ router.post('/posts/:id', auth.requireLogin, ownPost, singleImage('cover'), auth
   db.prepare(`
     UPDATE posts SET title = ?, cover_image = ?, content_html = ?, content_text = ?, status = ?, published_at = ?, updated_at = ?
     WHERE id = ?`).run(values.title, cover, values.content_html, values.content_text, status, publishedAt, nowSql(), post.id);
+  syncPostImages(db, post.id, cover, values.content_html);
 
   let message = 'Changes saved.';
   if (status === 'published' && post.status === 'draft') message = 'Your post is published!';
@@ -172,7 +175,7 @@ router.post('/posts/:id/delete', auth.requireLogin, ownPost, (req, res) => {
 });
 
 // Pictures inserted into the text of a post by the editor.
-router.post('/uploads/image', auth.requireLogin, singleImage('image'), auth.verifyCsrf, (req, res) => {
+router.post('/uploads/image', auth.requireVerified, singleImage('image'), auth.verifyCsrf, (req, res) => {
   if (req.uploadError) return res.status(400).json({ error: req.uploadError });
   if (!req.file) return res.status(400).json({ error: 'No picture was chosen.' });
   res.json({ url: saveImage(req.file, req.user.id) });

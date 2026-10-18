@@ -1,0 +1,13 @@
+<%- include('../partials/header') %>
+<div class="formbox">
+  <h1>Confirm your email</h1>
+  <% if (sent) { %><div class="flash" role="status">We sent you a new link.</div><% } %>
+  <p>We sent an email to <strong><%= currentUser.email %></strong>. Open the link in it to confirm that this address is yours.</p>
+  <p class="muted">After that you can create your blog, write posts and comment. The link is valid for 24 hours.
+    Accounts that are not confirmed within a week are removed.</p>
+  <form method="post" action="/verify-email/resend">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="btn btn-ghost" type="submit">Send the email again</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

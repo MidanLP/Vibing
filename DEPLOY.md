@@ -256,8 +256,11 @@ sudo a2enmod proxy proxy_http
 sudo cp /opt/inkwell/deploy/apache-http.conf /etc/apache2/sites-available/inkwell.conf
 sudo a2dissite 000-default
 sudo a2ensite inkwell
+sudo sed -i -e 's/^ServerTokens .*/ServerTokens Prod/' -e 's/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf
 sudo apache2ctl configtest
 ```
+
+(The `sed` line stops Apache from telling every visitor its exact version number, which helps attackers.)
 
 **You should see** `Syntax OK` at the end.
 (A line starting with `AH00558: apache2: Could not reliably determine the server's fully qualified domain name` is harmless. Ignore it.)
@@ -276,6 +279,7 @@ The browser shows "Not secure" next to the address. Step 9 fixes that.
 ## Step 8: Create your admin account
 
 1. On the site, click **Sign up** and create your account with your real email address and a **strong password**.
+   You'll see a page **"Confirm your email"**. You don't need the email for your own account. The next command confirms it for you.
 2. Back in the **server window**, run this (replace `YOUR_EMAIL` with the email you just signed up with):
 
    ```
@@ -404,6 +408,19 @@ sudo systemctl restart inkwell
 sudo journalctl -u inkwell -n 50 --no-pager
 ```
 
+**New users must confirm their email address** before they can create a blog, write or comment.
+The site sends them a link by email. **Until you set up email (below), these emails are not sent**, so new users get stuck.
+Until then you have two choices:
+
+- In **Admin → Users**, the account shows **Unverified**. Click **Confirm email**, but only if you know the address really belongs to that person.
+- Or find their link in the site's messages and send it to their email address:
+
+  ```
+  sudo journalctl -u inkwell --since "1 day ago" --no-pager | grep verify-email
+  ```
+
+Accounts that are never confirmed are removed automatically after a week.
+
 **Someone forgot their password** (until you set up email, below): the reset email is written into the site's messages instead of being sent.
 After the person has used *Forgot password?* on the site, run:
 
@@ -413,7 +430,7 @@ sudo journalctl -u inkwell --since "1 hour ago" --no-pager | grep reset-password
 
 Send the link that appears **only to the email address of that account**. Anyone with the link can change the password.
 
-**Set up real emails** for password resets. You need an account with an email-sending service, for example Brevo, Mailgun or Postmark. They give you a "SMTP server", "port", "username" and "password".
+**Set up real emails** for confirming new accounts and for password resets. Do this before you invite people. You need an account with an email-sending service, for example Brevo, Mailgun or Postmark. They give you a "SMTP server", "port", "username" and "password".
 Open the settings file:
 
 ```
@@ -526,6 +543,18 @@ sudo systemctl start inkwell
 | `certbot` says `Timeout`, `Connection refused` or `unauthorized` | Port 80 isn't reachable from the internet. Check the provider firewall (see above), and that `http://YOUR_SERVER_IP` opens your site. Then try again. |
 | After Step 9, the site says **"Form expired"** when logging in | Close the tab and open the `https://` address freshly. Don't use an old `http://` tab. |
 | Something else | Run `sudo journalctl -u inkwell -n 50 --no-pager` and `sudo tail -n 20 /var/log/apache2/inkwell-error.log` and look at the last lines. They usually say what's wrong. |
+
+## Security notes
+
+- **ICMP timestamp requests** (security scanners report "ICMP timestamp disclosure"). The firewall from Step 3 already drops them:
+  Ubuntu's firewall only lets through four kinds of ICMP message, and timestamp requests are not one of them.
+  If a scanner still reports it, check that the firewall is on with `sudo ufw status verbose`. You should see `Status: active` and `Default: deny (incoming)`.
+  Then scan again. Scans made before Step 3 still show it.
+- **Flood attacks (for example a "SYN flood").** One small server can't absorb a determined flood. That's a question of network capacity, not of the site's code.
+  The site comes back by itself when the flood stops: Step 6 restarts it automatically.
+  Ubuntu's built-in protection against SYN floods ("SYN cookies") should be on. Check with `sysctl net.ipv4.tcp_syncookies`; you should see `= 1`.
+  For real protection, use your server provider's DDoS protection, if they offer it. Once you have a domain, you can also put a free service like Cloudflare in front of the site.
+  Many providers forbid flood tests in their terms of service, so ask them before running one again.
 
 ## Where everything is on the server
 

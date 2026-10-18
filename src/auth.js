@@ -77,7 +77,7 @@ function loadUser(req, res, next) {
   const token = req.cookies[SESSION_COOKIE];
   if (token) {
     const row = db.prepare(`
-      SELECT u.id, u.email, u.name, u.bio, u.avatar, u.is_admin, u.is_banned, s.expires_at
+      SELECT u.id, u.email, u.name, u.bio, u.avatar, u.is_admin, u.is_banned, u.email_verified, s.expires_at
       FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.id_hash = ?`).get(sha256(token));
     if (!row || row.expires_at < new Date().toISOString() || row.is_banned) {
@@ -97,6 +97,18 @@ function requireLogin(req, res, next) {
   res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
 }
 
+// Writing anything others can see (a blog, posts, comments, a profile)
+// needs a confirmed email address.
+function requireVerified(req, res, next) {
+  if (!req.user) return requireLogin(req, res, next);
+  if (req.user.email_verified) return next();
+  if (req.accepts(['html', 'json']) === 'json') {
+    return res.status(403).json({ error: 'Please confirm your email address first.' });
+  }
+  setFlash(res, 'Please confirm your email address first. Click the link in the email we sent you.', 'error');
+  res.redirect('/verify-email');
+}
+
 function requireAdmin(req, res, next) {
   if (req.user && req.user.is_admin) return next();
   res.status(404).render('error', { title: 'Not found', message: 'This page does not exist.' });
@@ -106,6 +118,10 @@ function purgeExpired() {
   const now = new Date().toISOString();
   db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now);
   db.prepare('DELETE FROM password_resets WHERE expires_at < ?').run(now);
+  db.prepare('DELETE FROM email_verifications WHERE expires_at < ?').run(now);
+  // Accounts never confirmed within a week are removed, so that nobody can
+  // keep someone else's email address blocked.
+  db.prepare("DELETE FROM users WHERE email_verified = 0 AND is_admin = 0 AND created_at < datetime('now', '-7 days')").run();
 }
 
 // ---------- CSRF (double-submit cookie) ----------
@@ -206,6 +222,7 @@ module.exports = {
   endAllSessionsForUser,
   loadUser,
   requireLogin,
+  requireVerified,
   requireAdmin,
   purgeExpired,
   csrfToken,

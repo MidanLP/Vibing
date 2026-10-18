@@ -15,5 +15,5 @@ if (!user) {
   process.exit(1);
 }
 
-db.prepare('UPDATE users SET is_admin = 1, is_banned = 0 WHERE id = ?').run(user.id);
+db.prepare('UPDATE users SET is_admin = 1, is_banned = 0, email_verified = 1 WHERE id = ?').run(user.id);
 console.log(`Done! ${user.name} (${email}) is now an admin. Log in and open /admin (the "Admin" link in the menu).`);

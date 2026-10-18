@@ -5,7 +5,8 @@ You, the owner, get an admin page where you can see everything, remove things an
 
 ## Features
 
-- **Accounts:** sign up with email and password, log in, log out, and reset a forgotten password by email.
+- **Accounts:** sign up with email and password, confirm the email address with a link, log in, log out, and reset a forgotten password by email.
+  New accounts can only create a blog, write or comment after confirming their email address.
 - **Profiles:** each user has a name, a short bio and a profile picture they upload.
 - **Blogs:** each user can create one blog, with a name, a description and its own web address (`/b/your-blog`).
 - **Posts:** a title, an optional cover image, and formatted text: headings, bold, italic, links, quotes, lists, code and pictures.
@@ -70,10 +71,10 @@ Next time, you only need to open a terminal in the folder and type `npm start` a
 
 3. Start the site again with `npm start` and log in. An **Admin** link now appears in the top menu.
 
-### Trying "forgot password" on your computer
+### Trying emails on your computer
 
-On your computer, the site doesn't send real emails. When someone asks for a password reset, the email, including the reset link,
-**is printed in the terminal window**. Copy the link into your browser to try it.
+On your computer, the site doesn't send real emails. The emails for confirming a new account and for resetting a password,
+including their links, **are printed in the terminal window**. Copy the link into your browser to try it.
 To send real emails (needed once the site is online), see *Settings* below.
 
 ### Trying it with several users

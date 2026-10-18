@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const { DatabaseSync } = require('node:sqlite');
 const config = require('./config');
+const { syncPostImages } = require('./post-images');
 
 fs.mkdirSync(config.uploadsDir, { recursive: true });
 
@@ -78,6 +79,36 @@ CREATE TABLE IF NOT EXISTS uploads (
 );
 `);
 
+// ---------- migrations for databases created by earlier versions ----------
+
+const migrations = [
+  // 1: email verification, and private pictures for drafts.
+  () => {
+    db.exec(`
+      ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0;
+      -- Accounts that existed before email verification was added keep working.
+      UPDATE users SET email_verified = 1;
+
+      CREATE TABLE email_verifications (
+        token_hash TEXT PRIMARY KEY,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        expires_at TEXT NOT NULL
+      );
+
+      CREATE TABLE post_images (
+        post_id  INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL,
+        PRIMARY KEY (post_id, filename)
+      );
+      CREATE INDEX idx_post_images_filename ON post_images(filename);
+      CREATE INDEX idx_users_avatar ON users(avatar);
+    `);
+    for (const post of db.prepare('SELECT id, cover_image, content_html FROM posts').all()) {
+      syncPostImages(db, post.id, post.cover_image, post.content_html);
+    }
+  },
+];
+
 function transaction(fn) {
   db.exec('BEGIN');
   try {
@@ -88,6 +119,16 @@ function transaction(fn) {
     db.exec('ROLLBACK');
     throw err;
   }
+}
+
+let version = db.prepare('PRAGMA user_version').get().user_version;
+while (version < migrations.length) {
+  const next = version + 1;
+  transaction(() => {
+    migrations[version]();
+    db.exec(`PRAGMA user_version = ${next}`);
+  });
+  version = next;
 }
 
 module.exports = { db, transaction };

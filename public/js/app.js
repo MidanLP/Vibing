@@ -19,10 +19,9 @@ document.querySelectorAll('input[type=file][data-preview-target]').forEach((inpu
       target.hidden = false;
     } else {
       const img = document.createElement('img');
-      img.className = 'avatar';
+      img.className = 'avatar avatar-88';
       img.src = url;
       img.alt = '';
-      img.style.width = img.style.height = '88px';
       target.replaceChildren(img);
     }
   });

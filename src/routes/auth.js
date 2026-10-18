@@ -7,7 +7,7 @@ const { sendMail } = require('../mail');
 const { str, isEmail, safeNext } = require('../helpers');
 
 const router = express.Router();
-const limiter = auth.rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
+const limiter = auth.rateLimit({ windowMs: 15 * 60 * 1000, max: config.authRateLimit });
 
 const MIN_PASSWORD = 8;
 
@@ -33,9 +33,59 @@ router.post('/signup', limiter, async (req, res) => {
   const hash = await auth.hashPassword(password);
   const { lastInsertRowid } = db.prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)')
     .run(values.email, hash, values.name);
-  auth.startSession(res, Number(lastInsertRowid));
-  auth.setFlash(res, `Welcome, ${values.name}! Start by creating your blog.`);
-  res.redirect('/my-blog');
+  const userId = Number(lastInsertRowid);
+  await sendVerificationEmail({ id: userId, name: values.name, email: values.email });
+  auth.startSession(res, userId);
+  res.redirect('/verify-email');
+});
+
+// ---------- email verification ----------
+
+async function sendVerificationEmail(user) {
+  const token = auth.randomToken();
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  db.prepare('DELETE FROM email_verifications WHERE user_id = ?').run(user.id);
+  db.prepare('INSERT INTO email_verifications (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
+    .run(auth.sha256(token), user.id, expires);
+  const link = `${config.baseUrl}/verify-email/${token}`;
+  try {
+    await sendMail({
+      to: user.email,
+      subject: `Confirm your email for ${config.siteName}`,
+      text: `Hi ${user.name},\n\nWelcome to ${config.siteName}! Please confirm your email address by opening this link.\n`
+        + `It is valid for 24 hours:\n\n${link}\n\n`
+        + 'If you did not create an account, you can ignore this email.\n',
+    });
+  } catch (err) {
+    console.error('Could not send verification email:', err.message);
+  }
+}
+
+router.get('/verify-email', auth.requireLogin, (req, res) => {
+  if (req.user.email_verified) return res.redirect(req.user.blog ? '/dashboard' : '/my-blog');
+  res.render('auth/verify', { title: 'Confirm your email', sent: req.query.sent === '1' });
+});
+
+router.post('/verify-email/resend', auth.requireLogin, limiter, async (req, res) => {
+  if (!req.user.email_verified) await sendVerificationEmail(req.user);
+  res.redirect('/verify-email?sent=1');
+});
+
+router.get('/verify-email/:token', (req, res) => {
+  const token = req.params.token;
+  const row = typeof token === 'string' && token.length <= 100
+    ? db.prepare('SELECT user_id, expires_at FROM email_verifications WHERE token_hash = ?').get(auth.sha256(token))
+    : null;
+  if (!row || row.expires_at < new Date().toISOString()) {
+    return res.status(400).render('error', {
+      title: 'Link expired',
+      message: 'This confirmation link is invalid or has expired. Log in and ask for a new one.',
+    });
+  }
+  db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(row.user_id);
+  db.prepare('DELETE FROM email_verifications WHERE user_id = ?').run(row.user_id);
+  auth.setFlash(res, 'Thanks! Your email address is confirmed.');
+  res.redirect(req.user && req.user.id === row.user_id ? '/my-blog' : '/login');
 });
 
 router.get('/login', (req, res) => {
@@ -130,7 +180,8 @@ router.post('/reset-password/:token', limiter, async (req, res) => {
   if (password !== req.body.password2) return render('The two passwords do not match.');
 
   const hash = await auth.hashPassword(password);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, reset.user_id);
+  // Using the link from the email also proves the email address is theirs.
+  db.prepare('UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?').run(hash, reset.user_id);
   db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(reset.user_id);
   auth.endAllSessionsForUser(reset.user_id);
   auth.setFlash(res, 'Your password has been changed. You can now log in.');

@@ -10,6 +10,7 @@ const path = require('node:path');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'blog-test-'));
 process.env.DATA_DIR = dataDir;
 process.env.SMTP_HOST = '';
+process.env.AUTH_RATE_LIMIT = '1000';
 
 const app = require('../src/app');
 const { db } = require('../src/db');
@@ -78,10 +79,17 @@ class Browser {
 const PNG = Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000'
   + '1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082', 'hex');
 
-async function signup(name, email, password = 'password123') {
+function lastLinkTo(email, path) {
+  const mail = [...recentlyPrinted].reverse().find((m) => m.to === email && m.text.includes(path));
+  assert.ok(mail, `no email to ${email} with ${path}`);
+  return new URL(mail.text.match(new RegExp(`https?://\\S+${path}\\S+`))[0]).pathname;
+}
+
+async function signup(name, email, { password = 'password123', verify = true } = {}) {
   const b = new Browser();
   const res = await b.post('/signup', { name, email, password, password2: password });
   assert.equal(res.status, 302, `signup of ${email} failed: ${res.text_.slice(0, 300)}`);
+  if (verify) assert.equal((await b.get(lastLinkTo(email, '/verify-email/'))).status, 302);
   return b;
 }
 
@@ -161,7 +169,8 @@ test('drafts are only visible to their author', async () => {
 
 test('publish a post with cover image and formatted text; dangerous HTML is removed', async () => {
   const content = '<h2>Heading</h2><p>Some <strong>bold</strong> and <a href="https://example.com">a link</a>'
-    + '<img src="/uploads/x.png" onerror="alert(1)"></p><script>alert(1)</script>'
+    + '<img src="/uploads/0123456789abcdef0123456789abcdef.png" onerror="alert(1)">'
+    + '<img src="https://tracker.example/pixel.gif"><img src="data:image/png;base64,AAAA"></p><script>alert(1)</script>'
     + '<p><a href="javascript:alert(1)">bad</a></p><iframe src="https://evil"></iframe>';
   const res = await alice.postMultipart('/posts', { title: 'Tomato soup', content, action: 'publish' },
     { field: 'cover', name: 'c.png', data: PNG, type: 'image/png' });
@@ -174,8 +183,8 @@ test('publish a post with cover image and formatted text; dangerous HTML is remo
   assert.match(post.content_html, /<h2>Heading<\/h2>/);
   assert.match(post.content_html, /<strong>bold<\/strong>/);
   assert.match(post.content_html, /<a href="https:\/\/example.com" target="_blank" rel="noopener noreferrer nofollow ugc">/);
-  assert.match(post.content_html, /<img src="\/uploads\/x.png" \/>/);
-  assert.doesNotMatch(post.content_html, /script|onerror|javascript:|iframe/);
+  assert.match(post.content_html, /<img src="\/uploads\/0123456789abcdef0123456789abcdef.png" \/>/);
+  assert.doesNotMatch(post.content_html, /script|onerror|javascript:|iframe|tracker|data:/);
 
   const page = await new Browser().get(`/posts/${alicePostId}`);
   assert.equal(page.status, 200);
@@ -269,6 +278,7 @@ test('comment editing and deleting permissions', async () => {
 
 test('password reset by email link', async () => {
   const anon = new Browser();
+  recentlyPrinted.length = 0;
   const unknown = await anon.post('/forgot-password', { email: 'nobody@example.com' });
   assert.equal(unknown.status, 200);
   assert.equal(recentlyPrinted.length, 0);
@@ -352,4 +362,144 @@ test('login redirect only goes to pages on this site', async () => {
   const b = new Browser();
   const res = await b.post('/login', { email: 'owner@example.com', password: 'password123', next: '//evil.example' });
   assert.equal(res.headers.get('location'), '/');
+});
+
+test('a new account must confirm its email before writing anything', async () => {
+  const dave = await signup('Dave', 'dave@example.com', { verify: false });
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get('dave@example.com');
+  assert.equal(user.email_verified, 0);
+  assert.match((await dave.get('/verify-email')).text_, /dave@example\.com/);
+
+  // Everything that publishes something is blocked.
+  for (const url of ['/my-blog', '/posts/new']) {
+    const res = await dave.get(url);
+    assert.equal(res.headers.get('location'), '/verify-email', url);
+  }
+  assert.equal((await dave.post('/my-blog', { name: 'Spam' })).headers.get('location'), '/verify-email');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM blogs WHERE user_id = ?').get(user.id).n, 0);
+  const commentable = db.prepare("SELECT id FROM posts WHERE status = 'published'").get();
+  if (commentable) {
+    await dave.post(`/posts/${commentable.id}/comments`, { content: '<p>spam</p>' });
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM comments WHERE user_id = ?').get(user.id).n, 0);
+  }
+  const profile = await dave.postMultipart('/settings', { name: 'Dave spam', bio: 'buy now' });
+  assert.equal(profile.headers.get('location'), '/verify-email');
+  assert.equal(db.prepare('SELECT bio FROM users WHERE id = ?').get(user.id).bio, '');
+  const fd = new FormData();
+  fd.append('image', new Blob([PNG], { type: 'image/png' }), 'i.png');
+  const upload = await dave.request('POST', '/uploads/image', {
+    multipart: fd, headers: { 'x-csrf-token': await dave.csrf(), accept: 'application/json' },
+  });
+  assert.equal(upload.status, 403);
+
+  // A wrong or reused link does nothing; asking again sends a new link.
+  assert.equal((await dave.get('/verify-email/not-a-real-token')).status, 400);
+  const firstLink = lastLinkTo('dave@example.com', '/verify-email/');
+  assert.equal((await dave.post('/verify-email/resend')).status, 302);
+  const secondLink = lastLinkTo('dave@example.com', '/verify-email/');
+  assert.notEqual(firstLink, secondLink);
+  assert.equal((await dave.get(firstLink)).status, 400);
+
+  // The right link confirms the address; then writing works.
+  assert.equal((await new Browser().get(secondLink)).status, 302);
+  assert.equal(db.prepare('SELECT email_verified FROM users WHERE id = ?').get(user.id).email_verified, 1);
+  assert.equal((await dave.get(secondLink)).status, 400);
+  assert.equal((await dave.post('/my-blog', { name: 'Dave writes' })).headers.get('location'), '/dashboard');
+});
+
+test('resetting the password also confirms the email address', async () => {
+  await signup('Erin', 'erin@example.com', { verify: false });
+  await new Browser().post('/forgot-password', { email: 'erin@example.com' });
+  const url = lastLinkTo('erin@example.com', '/reset-password/');
+  await new Browser().post(url, { password: 'newpassword1', password2: 'newpassword1' });
+  assert.equal(db.prepare('SELECT email_verified FROM users WHERE email = ?').get('erin@example.com').email_verified, 1);
+});
+
+test('unconfirmed accounts are removed after a week', async () => {
+  await signup('Squatter', 'someone-else@example.com', { verify: false });
+  db.prepare("UPDATE users SET created_at = datetime('now', '-8 days') WHERE email = ?").run('someone-else@example.com');
+  require('../src/auth').purgeExpired();
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM users WHERE email = ?').get('someone-else@example.com').n, 0);
+  // Confirmed accounts stay.
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM users WHERE email = ?').get('owner@example.com').n, 1);
+});
+
+test('pictures of drafts are private, like the draft', async () => {
+  const frank = await signup('Frank', 'frank@example.com');
+  await frank.post('/my-blog', { name: 'Frank photos' });
+  const other = await signup('Gina', 'gina@example.com');
+  const anon = new Browser();
+
+  // An inline picture, uploaded while writing.
+  const fd = new FormData();
+  fd.append('image', new Blob([PNG], { type: 'image/png' }), 'i.png');
+  const up = await frank.request('POST', '/uploads/image', {
+    multipart: fd, headers: { 'x-csrf-token': await frank.csrf(), accept: 'application/json' },
+  });
+  const inline = JSON.parse(up.text_).url;
+
+  const res = await frank.postMultipart('/posts', { title: 'Secret photos', content: `<p>hi</p><p><img src="${inline}"></p>`, action: 'save' },
+    { field: 'cover', name: 'c.png', data: PNG, type: 'image/png' });
+  const id = Number(res.headers.get('location').match(/\/posts\/(\d+)/)[1]);
+  const cover = db.prepare('SELECT cover_image FROM posts WHERE id = ?').get(id).cover_image;
+
+  const status = async (who, url) => (await who.get(url)).status;
+  for (const url of [cover, inline]) {
+    assert.equal(await status(frank, url), 200, 'author sees own draft pictures');
+    assert.equal(await status(anon, url), 404, 'logged-out people do not');
+    assert.equal(await status(other, url), 404, 'other accounts do not');
+  }
+
+  // Published: everyone may see them. The response must not be cached.
+  await frank.postMultipart(`/posts/${id}`, { title: 'Secret photos', content: `<p>hi</p><p><img src="${inline}"></p>`, action: 'publish' });
+  for (const url of [cover, inline]) {
+    const r = await anon.get(url);
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('content-type'), 'image/png');
+    assert.match(r.headers.get('cache-control'), /private, no-cache/);
+  }
+
+  // Back to draft: private again.
+  await frank.postMultipart(`/posts/${id}`, { title: 'Secret photos', content: `<p>hi</p><p><img src="${inline}"></p>`, action: 'unpublish' });
+  for (const url of [cover, inline]) assert.equal(await status(anon, url), 404);
+
+  // A picture removed from a published post's text is no longer public.
+  await frank.postMultipart(`/posts/${id}`, { title: 'Secret photos', content: '<p>hi</p>', action: 'publish' });
+  assert.equal(await status(anon, cover), 200);
+  assert.equal(await status(anon, inline), 404);
+
+  // Pictures of banned users disappear with their posts.
+  const frankId = db.prepare('SELECT id FROM users WHERE email = ?').get('frank@example.com').id;
+  db.prepare('UPDATE users SET is_banned = 1 WHERE id = ?').run(frankId);
+  assert.equal(await status(anon, cover), 404);
+  db.prepare('UPDATE users SET is_banned = 0 WHERE id = ?').run(frankId);
+
+  // Someone who saw a picture's address cannot make it public again by
+  // putting it into a published post of their own.
+  await frank.postMultipart(`/posts/${id}`, { title: 'Secret photos', content: '<p>hi</p>', action: 'unpublish' });
+  await other.post('/my-blog', { name: 'Gina copies' });
+  await other.postMultipart('/posts', { title: 'Copied', content: `<p>x</p><p><img src="${cover}"></p>`, action: 'publish' });
+  assert.equal(await status(anon, cover), 404);
+
+  // Names that are not uploads are refused.
+  assert.equal(await status(anon, '/uploads/..%2fblog.db'), 404);
+  assert.equal(await status(anon, '/uploads/blog.db'), 404);
+});
+
+test('profile pictures stay public', async () => {
+  const user = db.prepare('SELECT avatar FROM users WHERE avatar IS NOT NULL').get();
+  if (user) assert.equal((await new Browser().get(user.avatar)).status, 200);
+});
+
+test('strict Content-Security-Policy', async () => {
+  const res = await new Browser().get('/');
+  const csp = res.headers.get('content-security-policy');
+  assert.match(csp, /default-src 'self'/);
+  assert.match(csp, /style-src 'self'(;|$)/);
+  assert.match(csp, /img-src 'self' blob:(;|$)/);
+  assert.match(csp, /script-src 'self'(;|$)/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.doesNotMatch(csp, /unsafe-inline|https:|http:|data:/);
+  // No inline style attributes left in the pages.
+  assert.doesNotMatch(res.text_, /style="/);
 });

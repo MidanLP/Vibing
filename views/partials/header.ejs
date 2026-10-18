@@ -51,6 +51,9 @@
   </div>
 </header>
 <main class="wrap">
+<% if (currentUser && !currentUser.email_verified && path !== '/verify-email') { %>
+  <div class="flash flash-info" role="status">Please confirm your email address to start writing. <a href="/verify-email">Didn't get the email?</a></div>
+<% } %>
 <% if (flash) { %>
   <div class="flash flash-<%= flash.kind %>" role="status"><%= flash.message %></div>
 <% } %>

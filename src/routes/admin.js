@@ -49,7 +49,7 @@ router.get('/users', (req, res) => {
   const where = searchClause(q, ['u.name', 'u.email']);
   const total = db.prepare(`SELECT COUNT(*) AS n FROM users u WHERE ${where.sql}`).get(...where.params).n;
   const users = db.prepare(`
-    SELECT u.id, u.name, u.email, u.avatar, u.is_admin, u.is_banned, u.created_at, b.slug AS blog_slug,
+    SELECT u.id, u.name, u.email, u.avatar, u.is_admin, u.is_banned, u.email_verified, u.created_at, b.slug AS blog_slug,
       (SELECT COUNT(*) FROM posts p WHERE p.blog_id = b.id) AS post_count,
       (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id) AS comment_count
     FROM users u LEFT JOIN blogs b ON b.user_id = u.id
@@ -112,6 +112,15 @@ router.post('/users/:id/ban', (req, res) => {
   db.prepare('UPDATE users SET is_banned = 1 WHERE id = ?').run(user.id);
   auth.endAllSessionsForUser(user.id);
   back(req, res, `${user.name} is banned. They are logged out, cannot log in, and their blog, posts and comments are hidden.`);
+});
+
+// For when someone's confirmation email does not arrive.
+router.post('/users/:id/verify', (req, res) => {
+  const user = targetUser(req, res);
+  if (!user) return;
+  db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(user.id);
+  db.prepare('DELETE FROM email_verifications WHERE user_id = ?').run(user.id);
+  back(req, res, `The email address of ${user.name} is now confirmed.`);
 });
 
 router.post('/users/:id/unban', (req, res) => {
